@@ -54,6 +54,12 @@ Pipeline: `parse -> rewrite -> print`.
 3. Run `go test ./...`.
 4. If you modify `parser/spans`, verify on a real large OCR file to avoid reintroducing mass false diagnostics or structural collapsing.
 
+## Test Content Policy
+
+- Never use copyrighted source text in tests (including direct excerpts from books/articles).
+- For all test fixtures and inline test strings, create original synthetic text specifically for tests.
+- If a real-world sample is needed to reproduce formatting shape, rewrite it into a new invented variant before adding to repo.
+
 ## Behavioral Changes
 
 If a change affects user-facing behavior (especially block segmentation, diagnostics, or dialogue formatting), add/update regression tests in `internal/parser/*_test.go` and briefly document the reason in the PR/message.
