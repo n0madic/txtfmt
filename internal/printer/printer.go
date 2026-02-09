@@ -55,6 +55,8 @@ func printPlain(doc ast.Document) string {
 	parts := make([]string, 0, len(doc.Blocks))
 	for _, blk := range doc.Blocks {
 		switch b := blk.(type) {
+		case ast.TitleBlock:
+			parts = append(parts, printInlines(b.In, doc.Style))
 		case ast.Paragraph:
 			parts = append(parts, printInlines(b.In, doc.Style))
 		case ast.Heading:
@@ -85,6 +87,8 @@ func printMarkdown(doc ast.Document) string {
 	parts := make([]string, 0, len(doc.Blocks))
 	for _, blk := range doc.Blocks {
 		switch b := blk.(type) {
+		case ast.TitleBlock:
+			parts = append(parts, "# "+printInlines(b.In, doc.Style))
 		case ast.Paragraph:
 			parts = append(parts, printInlines(b.In, doc.Style))
 		case ast.Heading:
@@ -123,6 +127,8 @@ func printHTML(doc ast.Document) string {
 	lines = append(lines, "<article>")
 	for _, blk := range doc.Blocks {
 		switch b := blk.(type) {
+		case ast.TitleBlock:
+			lines = append(lines, "  <h1>"+escapeHTMLText(printInlines(b.In, doc.Style))+"</h1>")
 		case ast.Paragraph:
 			lines = append(lines, "  <p>"+escapeHTMLText(printInlines(b.In, doc.Style))+"</p>")
 		case ast.Heading:
@@ -158,6 +164,8 @@ func printXML(doc ast.Document) string {
 	lines = append(lines, "<document lang=\""+escapeXMLAttr(string(doc.Lang))+"\">")
 	for _, blk := range doc.Blocks {
 		switch b := blk.(type) {
+		case ast.TitleBlock:
+			lines = append(lines, "  <title>"+escapeXMLText(printInlines(b.In, doc.Style))+"</title>")
 		case ast.Paragraph:
 			lines = append(lines, "  <paragraph>"+escapeXMLText(printInlines(b.In, doc.Style))+"</paragraph>")
 		case ast.Heading:

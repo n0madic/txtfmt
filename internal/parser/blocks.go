@@ -44,6 +44,15 @@ func Parse(input string, cfg config.Config) ast.Document {
 	for i := 0; i < len(candidates); i++ {
 		c := candidates[i]
 
+		if i == 0 {
+			if title, diags, consumed, ok := parseLeadingTitleCandidates(candidates); ok {
+				doc.Blocks = append(doc.Blocks, title)
+				doc.Diags = append(doc.Diags, diags...)
+				i += consumed - 1
+				continue
+			}
+		}
+
 		if contents, diags, ok := parseContentsCandidate(c); ok {
 			j := i + 1
 			for j < len(candidates) {
@@ -69,6 +78,199 @@ func Parse(input string, cfg config.Config) ast.Document {
 	}
 
 	return doc
+}
+
+func parseLeadingTitleCandidates(candidates []candidate) (ast.TitleBlock, []ast.Diag, int, bool) {
+	if len(candidates) == 0 {
+		return ast.TitleBlock{}, nil, 0, false
+	}
+
+	first := candidates[0]
+	if title, diags, ok := parseSingleCandidateTitle(first, candidates[1:]); ok {
+		return title, diags, 1, true
+	}
+
+	if title, diags, ok := parseTwoCandidateTitle(candidates); ok {
+		return title, diags, 2, true
+	}
+
+	return ast.TitleBlock{}, nil, 0, false
+}
+
+func parseSingleCandidateTitle(first candidate, tail []candidate) (ast.TitleBlock, []ast.Diag, bool) {
+	if len(first.lines) != 1 {
+		if len(first.lines) != 2 {
+			return ast.TitleBlock{}, nil, false
+		}
+		if !looksLikeTitlePart(first.lines[0]) || !looksLikeTitlePart(first.lines[1]) {
+			return ast.TitleBlock{}, nil, false
+		}
+		if !isFrontMatterPrefix(tail) {
+			return ast.TitleBlock{}, nil, false
+		}
+		in, diags := parseInlineLines(first.lines, first.lineNums, true)
+		return ast.TitleBlock{In: in}, diags, true
+	}
+
+	if classifyFrontMatterCandidate(first) != frontMatterUnknown {
+		return ast.TitleBlock{}, nil, false
+	}
+	if !looksLikeSingleLineTitle(first.lines[0]) {
+		return ast.TitleBlock{}, nil, false
+	}
+	if !isFrontMatterPrefix(tail) {
+		return ast.TitleBlock{}, nil, false
+	}
+
+	in, diags := parseInlineLines(first.lines, first.lineNums, false)
+	return ast.TitleBlock{In: in}, diags, true
+}
+
+func parseTwoCandidateTitle(candidates []candidate) (ast.TitleBlock, []ast.Diag, bool) {
+	if len(candidates) < 2 {
+		return ast.TitleBlock{}, nil, false
+	}
+
+	first := candidates[0]
+	second := candidates[1]
+	if len(first.lines) != 1 || len(second.lines) != 1 {
+		return ast.TitleBlock{}, nil, false
+	}
+
+	if classifyFrontMatterCandidate(first) != frontMatterUnknown ||
+		classifyFrontMatterCandidate(second) != frontMatterUnknown {
+		return ast.TitleBlock{}, nil, false
+	}
+
+	if !looksLikeTitlePart(first.lines[0]) || !looksLikeTitlePart(second.lines[0]) {
+		return ast.TitleBlock{}, nil, false
+	}
+
+	if !isFrontMatterPrefix(candidates[2:]) {
+		return ast.TitleBlock{}, nil, false
+	}
+
+	lines := []string{first.lines[0], second.lines[0]}
+	lineNums := []int{first.lineNums[0], second.lineNums[0]}
+	in, diags := parseInlineLines(lines, lineNums, true)
+	return ast.TitleBlock{In: in}, diags, true
+}
+
+type frontMatterKind int
+
+const (
+	frontMatterUnknown frontMatterKind = iota
+	frontMatterSceneBreak
+	frontMatterMeta
+	frontMatterHeading
+	frontMatterContents
+	frontMatterContentsEntry
+)
+
+func classifyFrontMatterCandidate(c candidate) frontMatterKind {
+	if len(c.lines) != 1 {
+		return frontMatterUnknown
+	}
+	line := c.lines[0]
+	if isSceneBreak(line) {
+		return frontMatterSceneBreak
+	}
+	if _, _, ok := parseMetaLine(line); ok {
+		return frontMatterMeta
+	}
+	if _, _, ok := parseHeading(line); ok {
+		return frontMatterHeading
+	}
+	if _, ok := parseContentsLine(line); ok {
+		return frontMatterContents
+	}
+	if _, _, ok := parseContentsEntryLine(line); ok {
+		return frontMatterContentsEntry
+	}
+	return frontMatterUnknown
+}
+
+func isFrontMatterPrefix(tail []candidate) bool {
+	if len(tail) == 0 {
+		return false
+	}
+
+	consumed := 0
+	hasMetaOrHeading := false
+	for _, c := range tail {
+		switch classifyFrontMatterCandidate(c) {
+		case frontMatterSceneBreak:
+			consumed++
+			continue
+		case frontMatterMeta, frontMatterHeading, frontMatterContents, frontMatterContentsEntry:
+			consumed++
+			hasMetaOrHeading = true
+		default:
+			return consumed > 0
+		}
+	}
+	if hasMetaOrHeading {
+		return true
+	}
+	return consumed > 0
+}
+
+func looksLikeSingleLineTitle(line string) bool {
+	t := normalizeStructureLine(line)
+	if t == "" {
+		return false
+	}
+	if lineRuneLen(t) > 180 {
+		return false
+	}
+	fields := strings.Fields(t)
+	if len(fields) < 2 {
+		return false
+	}
+
+	hasLetter := false
+	for _, r := range t {
+		if unicode.IsLetter(r) {
+			hasLetter = true
+			break
+		}
+	}
+	if !hasLetter {
+		return false
+	}
+
+	if strings.ContainsRune(t, '!') || strings.ContainsRune(t, '?') {
+		return false
+	}
+	return true
+}
+
+func looksLikeTitlePart(line string) bool {
+	t := normalizeStructureLine(line)
+	if t == "" {
+		return false
+	}
+	if lineRuneLen(t) > 120 {
+		return false
+	}
+
+	fields := strings.Fields(t)
+	if len(fields) > 12 {
+		return false
+	}
+
+	hasLetter := false
+	for _, r := range t {
+		if unicode.IsLetter(r) {
+			hasLetter = true
+			break
+		}
+	}
+	if !hasLetter {
+		return false
+	}
+
+	return !strings.ContainsRune(t, '!') && !strings.ContainsRune(t, '?')
 }
 
 func prepareSourceLines(raw []string) []sourceLine {

@@ -19,6 +19,9 @@ func Apply(doc *ast.Document, cfg config.Config) {
 func applyToAllInlines(doc *ast.Document, fn func([]ast.Inline) []ast.Inline) {
 	for i, blk := range doc.Blocks {
 		switch b := blk.(type) {
+		case ast.TitleBlock:
+			b.In = fn(b.In)
+			doc.Blocks[i] = b
 		case ast.Paragraph:
 			b.In = fn(b.In)
 			doc.Blocks[i] = b

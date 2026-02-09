@@ -5,6 +5,9 @@ import "github.com/n0madic/txtfmt/internal/ast"
 func emitCanonicalPairsDocument(doc *ast.Document) {
 	for i, blk := range doc.Blocks {
 		switch b := blk.(type) {
+		case ast.TitleBlock:
+			b.In = normalizeQuoteLevels(b.In, 0)
+			doc.Blocks[i] = b
 		case ast.Paragraph:
 			b.In = normalizeQuoteLevels(b.In, 0)
 			doc.Blocks[i] = b

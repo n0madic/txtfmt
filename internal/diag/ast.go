@@ -100,6 +100,11 @@ func WriteAST(w io.Writer, doc ast.Document) error {
 
 func mapBlock(blk ast.Block) debugBlock {
 	switch b := blk.(type) {
+	case ast.TitleBlock:
+		return debugBlock{
+			Kind: "TitleBlock",
+			In:   mapInlines(b.In),
+		}
 	case ast.Paragraph:
 		return debugBlock{
 			Kind: "Paragraph",

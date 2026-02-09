@@ -199,6 +199,131 @@ func TestParseStandaloneMetaLines(t *testing.T) {
 	}
 }
 
+func TestParseLeadingTitleBeforeMetaAndHeadings(t *testing.T) {
+	cfg, err := config.New("ru", "", false)
+	if err != nil {
+		t.Fatalf("config: %v", err)
+	}
+
+	input := "" +
+		"\x14Ирина Ветрова. Сигнал с ледяной орбиты\x15\n" +
+		"---------------------------------------------------------------\n" +
+		"OCR: Алексей Протасов\n" +
+		"Spellcheck: Марина Логинова ---------------------------------------------------------------\n" +
+		"\n" +
+		"\x14 * ЧАСТЬ ПЕРВАЯ * \x15\n"
+
+	doc := Parse(input, cfg)
+	if len(doc.Blocks) != 6 {
+		t.Fatalf("expected 6 blocks, got %d", len(doc.Blocks))
+	}
+	if _, ok := doc.Blocks[0].(ast.TitleBlock); !ok {
+		t.Fatalf("expected block 0 TitleBlock, got %T", doc.Blocks[0])
+	}
+	if _, ok := doc.Blocks[1].(ast.SceneBreak); !ok {
+		t.Fatalf("expected block 1 SceneBreak, got %T", doc.Blocks[1])
+	}
+	if _, ok := doc.Blocks[2].(ast.MetaLineBlock); !ok {
+		t.Fatalf("expected block 2 MetaLineBlock, got %T", doc.Blocks[2])
+	}
+	if _, ok := doc.Blocks[3].(ast.MetaLineBlock); !ok {
+		t.Fatalf("expected block 3 MetaLineBlock, got %T", doc.Blocks[3])
+	}
+	if _, ok := doc.Blocks[4].(ast.SceneBreak); !ok {
+		t.Fatalf("expected block 4 SceneBreak, got %T", doc.Blocks[4])
+	}
+	if _, ok := doc.Blocks[5].(ast.Heading); !ok {
+		t.Fatalf("expected block 5 Heading, got %T", doc.Blocks[5])
+	}
+}
+
+func TestParseLeadingTitleWithSceneBreakThenBody(t *testing.T) {
+	cfg, err := config.New("ru", "", false)
+	if err != nil {
+		t.Fatalf("config: %v", err)
+	}
+
+	input := strings.Join([]string{
+		"Ирина Ветрова. Сигнал с ледяной орбиты",
+		"---------------------------------------------------------------",
+		"",
+		"Первый абзац основного текста.",
+	}, "\n")
+
+	doc := Parse(input, cfg)
+	if len(doc.Blocks) != 3 {
+		t.Fatalf("expected 3 blocks, got %d", len(doc.Blocks))
+	}
+	if _, ok := doc.Blocks[0].(ast.TitleBlock); !ok {
+		t.Fatalf("expected block 0 TitleBlock, got %T", doc.Blocks[0])
+	}
+	if _, ok := doc.Blocks[1].(ast.SceneBreak); !ok {
+		t.Fatalf("expected block 1 SceneBreak, got %T", doc.Blocks[1])
+	}
+	if _, ok := doc.Blocks[2].(ast.Paragraph); !ok {
+		t.Fatalf("expected block 2 Paragraph, got %T", doc.Blocks[2])
+	}
+}
+
+func TestParseLeadingTitleTwoLinesSameCandidate(t *testing.T) {
+	cfg, err := config.New("ru", "", false)
+	if err != nil {
+		t.Fatalf("config: %v", err)
+	}
+
+	input := strings.Join([]string{
+		"АВТОР",
+		"НАЗВАНИЕ КНИГИ",
+		"",
+		"OCR: Test",
+		"# ЧАСТЬ ПЕРВАЯ",
+	}, "\n")
+
+	doc := Parse(input, cfg)
+	if len(doc.Blocks) != 3 {
+		t.Fatalf("expected 3 blocks, got %d", len(doc.Blocks))
+	}
+	if _, ok := doc.Blocks[0].(ast.TitleBlock); !ok {
+		t.Fatalf("expected block 0 TitleBlock, got %T", doc.Blocks[0])
+	}
+	if _, ok := doc.Blocks[1].(ast.MetaLineBlock); !ok {
+		t.Fatalf("expected block 1 MetaLineBlock, got %T", doc.Blocks[1])
+	}
+	if _, ok := doc.Blocks[2].(ast.Heading); !ok {
+		t.Fatalf("expected block 2 Heading, got %T", doc.Blocks[2])
+	}
+}
+
+func TestParseLeadingTitleTwoLinesSeparateCandidates(t *testing.T) {
+	cfg, err := config.New("ru", "", false)
+	if err != nil {
+		t.Fatalf("config: %v", err)
+	}
+
+	input := strings.Join([]string{
+		"НАЗВАНИЕ КНИГИ",
+		"",
+		"АВТОР",
+		"",
+		"Spellcheck: Test",
+		"### Пролог",
+	}, "\n")
+
+	doc := Parse(input, cfg)
+	if len(doc.Blocks) != 3 {
+		t.Fatalf("expected 3 blocks, got %d", len(doc.Blocks))
+	}
+	if _, ok := doc.Blocks[0].(ast.TitleBlock); !ok {
+		t.Fatalf("expected block 0 TitleBlock, got %T", doc.Blocks[0])
+	}
+	if _, ok := doc.Blocks[1].(ast.MetaLineBlock); !ok {
+		t.Fatalf("expected block 1 MetaLineBlock, got %T", doc.Blocks[1])
+	}
+	if _, ok := doc.Blocks[2].(ast.Heading); !ok {
+		t.Fatalf("expected block 2 Heading, got %T", doc.Blocks[2])
+	}
+}
+
 func TestParseLongIndentedLinesSplitIntoParagraphs(t *testing.T) {
 	cfg, err := config.New("ru", "", false)
 	if err != nil {

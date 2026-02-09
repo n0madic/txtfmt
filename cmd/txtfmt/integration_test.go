@@ -150,6 +150,40 @@ func TestCLIOutputFormatXML(t *testing.T) {
 	}
 }
 
+func TestCLIOutputFormatXMLLeadingTitleBlock(t *testing.T) {
+	input := strings.Join([]string{
+		"\x14Ирина Ветрова. Сигнал с ледяной орбиты\x15",
+		"---------------------------------------------------------------",
+		"OCR: Алексей Протасов",
+		"Spellcheck: Марина Логинова ---------------------------------------------------------------",
+		"",
+		"\x14 * ЧАСТЬ ПЕРВАЯ * \x15",
+		"",
+		"Первый абзац основного текста.",
+	}, "\n")
+
+	stdout, stderr, code := runCLI(t, []string{
+		"--lang", "ru",
+		"-input", "-",
+		"-format", "xml",
+	}, input)
+	if code != 0 {
+		t.Fatalf("expected code 0, got %d stderr=%q", code, stderr)
+	}
+	if !strings.Contains(stdout, "<title>Ирина Ветрова. Сигнал с ледяной орбиты</title>") {
+		t.Fatalf("expected title block in xml output, got %q", stdout)
+	}
+	if strings.Contains(stdout, "<paragraph>Ирина Ветрова. Сигнал с ледяной орбиты</paragraph>") {
+		t.Fatalf("leading title must not be printed as paragraph, got %q", stdout)
+	}
+	if !strings.Contains(stdout, "<paragraph>Первый абзац основного текста.</paragraph>") {
+		t.Fatalf("expected body paragraph to remain paragraph, got %q", stdout)
+	}
+	if strings.TrimSpace(stderr) != "" {
+		t.Fatalf("expected empty stderr, got %q", stderr)
+	}
+}
+
 func TestCLIUnsupportedFormatReturns2(t *testing.T) {
 	stdout, stderr, code := runCLI(t, []string{
 		"--lang", "ru",

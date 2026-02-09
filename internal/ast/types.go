@@ -42,6 +42,12 @@ type Heading struct {
 
 func (Heading) isBlock() {}
 
+type TitleBlock struct {
+	In []Inline
+}
+
+func (TitleBlock) isBlock() {}
+
 type ContentsBlock struct {
 	In      []Inline
 	Entries []ContentsEntry
