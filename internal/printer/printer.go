@@ -92,10 +92,7 @@ func printMarkdown(doc ast.Document) string {
 		case ast.Paragraph:
 			parts = append(parts, printInlines(b.In, doc.Style))
 		case ast.Heading:
-			level := b.Level
-			if level < 1 {
-				level = 1
-			}
+			level := max(b.Level, 1)
 			if level > 6 {
 				level = 6
 			}
@@ -132,10 +129,7 @@ func printHTML(doc ast.Document) string {
 		case ast.Paragraph:
 			lines = append(lines, "  <p>"+escapeHTMLText(printInlines(b.In, doc.Style))+"</p>")
 		case ast.Heading:
-			level := b.Level
-			if level < 1 {
-				level = 1
-			}
+			level := max(b.Level, 1)
 			if level > 6 {
 				level = 6
 			}
@@ -169,19 +163,13 @@ func printXML(doc ast.Document) string {
 		case ast.Paragraph:
 			lines = append(lines, "  <paragraph>"+escapeXMLText(printInlines(b.In, doc.Style))+"</paragraph>")
 		case ast.Heading:
-			level := b.Level
-			if level < 1 {
-				level = 1
-			}
+			level := max(b.Level, 1)
 			lines = append(lines, fmt.Sprintf("  <heading level=\"%d\">%s</heading>", level, escapeXMLText(printInlines(b.In, doc.Style))))
 		case ast.ContentsBlock:
 			lines = append(lines, "  <contents>")
 			lines = append(lines, "    <title>"+escapeXMLText(printInlines(b.In, doc.Style))+"</title>")
 			for _, entry := range b.Entries {
-				level := entry.Level
-				if level < 1 {
-					level = 1
-				}
+				level := max(entry.Level, 1)
 				lines = append(lines, fmt.Sprintf("    <entry level=\"%d\">%s</entry>", level, escapeXMLText(printInlines(entry.In, doc.Style))))
 			}
 			lines = append(lines, "  </contents>")
@@ -256,10 +244,7 @@ func buildContentsTree(entries []ast.ContentsEntry, style config.Style) []*conte
 	root := &contentsTreeNode{}
 	stack := []*contentsTreeNode{root}
 	for _, entry := range entries {
-		lvl := maxInt(entry.Level, 1) - minLevel + 1
-		if lvl < 1 {
-			lvl = 1
-		}
+		lvl := max(maxInt(entry.Level, 1)-minLevel+1, 1)
 
 		for len(stack)-1 >= lvl {
 			stack = stack[:len(stack)-1]
