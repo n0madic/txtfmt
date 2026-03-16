@@ -153,7 +153,7 @@ func resolveLang(langRaw, input string) (string, error) {
 	case string(config.LangEN), string(config.LangRU), string(config.LangUA):
 		return lang, nil
 	default:
-		return "", fmt.Errorf("unsupported --lang value %q (expected auto|en|ru|ua)", langRaw)
+		return "", fmt.Errorf("unsupported -lang value %q (expected auto|en|ru|ua)", langRaw)
 	}
 }
 

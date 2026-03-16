@@ -192,7 +192,7 @@ func isNumericWordInline(in ast.Inline) bool {
 	if !ok || w.S == "" {
 		return false
 	}
-	for _, r := range []rune(w.S) {
+	for _, r := range w.S {
 		if !unicode.IsDigit(r) {
 			return false
 		}

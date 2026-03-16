@@ -202,7 +202,7 @@ func printMarkdownContentsBlock(b ast.ContentsBlock, style config.Style) string 
 	lines := make([]string, 0, len(b.Entries)+1)
 	lines = append(lines, "## "+printInlines(b.In, style))
 	for _, entry := range b.Entries {
-		indent := strings.Repeat("  ", maxInt(entry.Level-1, 0))
+		indent := strings.Repeat("  ", max(entry.Level-1, 0))
 		lines = append(lines, indent+"- "+printInlines(entry.In, style))
 	}
 	return strings.Join(lines, "\n")
@@ -232,7 +232,7 @@ func buildContentsTree(entries []ast.ContentsEntry, style config.Style) []*conte
 
 	minLevel := 0
 	for _, entry := range entries {
-		lvl := maxInt(entry.Level, 1)
+		lvl := max(entry.Level, 1)
 		if minLevel == 0 || lvl < minLevel {
 			minLevel = lvl
 		}
@@ -244,7 +244,7 @@ func buildContentsTree(entries []ast.ContentsEntry, style config.Style) []*conte
 	root := &contentsTreeNode{}
 	stack := []*contentsTreeNode{root}
 	for _, entry := range entries {
-		lvl := max(maxInt(entry.Level, 1)-minLevel+1, 1)
+		lvl := max(max(entry.Level, 1)-minLevel+1, 1)
 
 		for len(stack)-1 >= lvl {
 			stack = stack[:len(stack)-1]
@@ -283,32 +283,23 @@ func escapeHTMLText(s string) string {
 	return html.EscapeString(s)
 }
 
-func escapeXMLText(s string) string {
-	repl := strings.NewReplacer(
-		"&", "&amp;",
-		"<", "&lt;",
-		">", "&gt;",
-	)
-	return repl.Replace(s)
-}
+var xmlTextReplacer = strings.NewReplacer(
+	"&", "&amp;",
+	"<", "&lt;",
+	">", "&gt;",
+)
 
-func escapeXMLAttr(s string) string {
-	repl := strings.NewReplacer(
-		"&", "&amp;",
-		"<", "&lt;",
-		">", "&gt;",
-		"\"", "&quot;",
-		"'", "&apos;",
-	)
-	return repl.Replace(s)
-}
+var xmlAttrReplacer = strings.NewReplacer(
+	"&", "&amp;",
+	"<", "&lt;",
+	">", "&gt;",
+	"\"", "&quot;",
+	"'", "&apos;",
+)
 
-func maxInt(v, min int) int {
-	if v < min {
-		return min
-	}
-	return v
-}
+func escapeXMLText(s string) string { return xmlTextReplacer.Replace(s) }
+
+func escapeXMLAttr(s string) string { return xmlAttrReplacer.Replace(s) }
 
 func printInlines(in []ast.Inline, style config.Style) string {
 	var b strings.Builder

@@ -461,14 +461,11 @@ func isDialogueCandidate(lines []string) bool {
 
 func isDialogueLine(s string) bool {
 	t := strings.TrimLeft(s, " \t")
-	if len([]rune(t)) < 2 {
+	r := []rune(t)
+	if len(r) < 2 {
 		return false
 	}
-	r := []rune(t)
-	if (r[0] == '—' || r[0] == '-') && unicode.IsSpace(r[1]) {
-		return true
-	}
-	return false
+	return (r[0] == '—' || r[0] == '-') && unicode.IsSpace(r[1])
 }
 
 func isSceneBreak(line string) bool {
@@ -798,11 +795,7 @@ func startsLikelyContinuation(line string) bool {
 }
 
 func lineRuneLen(s string) int {
-	n := 0
-	for range s {
-		n++
-	}
-	return n
+	return utf8.RuneCountInString(s)
 }
 
 func hasLeadingIndent(s string) bool {

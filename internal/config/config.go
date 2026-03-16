@@ -78,7 +78,7 @@ func validateLang(lang Lang) error {
 	case LangEN, LangRU, LangUA:
 		return nil
 	default:
-		return fmt.Errorf("unsupported --lang value %q (expected en|ru|ua)", string(lang))
+		return fmt.Errorf("unsupported -lang value %q (expected en|ru|ua)", string(lang))
 	}
 }
 
@@ -87,7 +87,7 @@ func validateInnerQuotes(inner InnerQuotes) error {
 	case InnerQuotesGerman, InnerQuotesEnglish, InnerQuotesGuillemet:
 		return nil
 	default:
-		return fmt.Errorf("unsupported --inner-quotes value %q (expected german|english|guillemets)", string(inner))
+		return fmt.Errorf("unsupported -inner-quotes value %q (expected german|english|guillemets)", string(inner))
 	}
 }
 
@@ -98,8 +98,6 @@ func defaultStyleForLang(lang Lang) Style {
 			Outer: QuotePair{Open: '“', Close: '”'},
 			Inner: QuotePair{Open: '‘', Close: '’'},
 		}
-	case LangRU, LangUA:
-		fallthrough
 	default:
 		return Style{
 			Outer: QuotePair{Open: '«', Close: '»'},
@@ -114,8 +112,6 @@ func innerPair(inner InnerQuotes) QuotePair {
 		return QuotePair{Open: '‘', Close: '’'}
 	case InnerQuotesGuillemet:
 		return QuotePair{Open: '«', Close: '»'}
-	case InnerQuotesGerman:
-		fallthrough
 	default:
 		return QuotePair{Open: '„', Close: '“'}
 	}

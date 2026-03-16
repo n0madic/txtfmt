@@ -50,9 +50,7 @@ func needSpaceBetween(prev, cur ast.Inline) bool {
 
 	if p, ok := prev.(ast.Punct); ok {
 		switch p.Ch {
-		case ',', ';', ':':
-			return startsWordLike(cur) || isEmDash(cur)
-		case '.', '?', '!':
+		case ',', ';', ':', '.', '?', '!':
 			return startsWordLike(cur) || isEmDash(cur)
 		}
 	}
