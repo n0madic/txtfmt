@@ -26,8 +26,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("txtfmt", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, "Usage: txtfmt -input <file|-> [options]")
-		fmt.Fprintln(stderr)
+		_, _ = fmt.Fprintln(stderr, "Usage: txtfmt -input <file|-> [options]")
+		_, _ = fmt.Fprintln(stderr)
 		fs.PrintDefaults()
 	}
 
@@ -46,7 +46,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 
 	if fs.NArg() > 0 {
-		fmt.Fprintln(stderr, "positional arguments are not supported; use -input")
+		_, _ = fmt.Fprintln(stderr, "positional arguments are not supported; use -input")
 		fs.Usage()
 		return 2
 	}
@@ -57,44 +57,44 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 
 	if err := charset.Validate(*inputCharset); err != nil {
-		fmt.Fprintln(stderr, err.Error())
+		_, _ = fmt.Fprintln(stderr, err.Error())
 		return 2
 	}
 	if err := charset.Validate(*outputCharset); err != nil {
-		fmt.Fprintln(stderr, err.Error())
+		_, _ = fmt.Fprintln(stderr, err.Error())
 		return 2
 	}
 	outputFormat, err := printer.ParseFormat(*format)
 	if err != nil {
-		fmt.Fprintln(stderr, err.Error())
+		_, _ = fmt.Fprintln(stderr, err.Error())
 		return 2
 	}
 
 	inputRaw, err := readInput(*inputPath, stdin)
 	if err != nil {
-		fmt.Fprintln(stderr, err.Error())
+		_, _ = fmt.Fprintln(stderr, err.Error())
 		return 1
 	}
 	input, err := charset.Decode(inputRaw, *inputCharset)
 	if err != nil {
-		fmt.Fprintln(stderr, err.Error())
+		_, _ = fmt.Fprintln(stderr, err.Error())
 		return 1
 	}
 	resolvedLang, err := resolveLang(*lang, input)
 	if err != nil {
-		fmt.Fprintln(stderr, err.Error())
+		_, _ = fmt.Fprintln(stderr, err.Error())
 		return 2
 	}
 	cfg, err := config.New(resolvedLang, *inner, *nbsp)
 	if err != nil {
-		fmt.Fprintln(stderr, err.Error())
+		_, _ = fmt.Fprintln(stderr, err.Error())
 		return 2
 	}
 
 	doc := parser.Parse(input, cfg)
 	if *dumpAST {
 		if err := diag.WriteAST(stderr, doc); err != nil {
-			fmt.Fprintln(stderr, err.Error())
+			_, _ = fmt.Fprintln(stderr, err.Error())
 			return 1
 		}
 	}
@@ -102,17 +102,17 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 	output, err := charset.Encode(printer.PrintWithFormat(doc, outputFormat), *outputCharset)
 	if err != nil {
-		fmt.Fprintln(stderr, err.Error())
+		_, _ = fmt.Fprintln(stderr, err.Error())
 		return 1
 	}
 	if err := writeOutput(*outputPath, output, stdout); err != nil {
-		fmt.Fprintln(stderr, err.Error())
+		_, _ = fmt.Fprintln(stderr, err.Error())
 		return 1
 	}
 
 	if len(doc.Diags) > 0 {
 		if err := diag.Write(stderr, doc.Diags); err != nil {
-			fmt.Fprintln(stderr, err.Error())
+			_, _ = fmt.Fprintln(stderr, err.Error())
 			return 1
 		}
 	}

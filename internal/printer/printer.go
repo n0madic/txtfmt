@@ -92,10 +92,7 @@ func printMarkdown(doc ast.Document) string {
 		case ast.Paragraph:
 			parts = append(parts, printInlines(b.In, doc.Style))
 		case ast.Heading:
-			level := max(b.Level, 1)
-			if level > 6 {
-				level = 6
-			}
+			level := min(max(b.Level, 1), 6)
 			parts = append(parts, strings.Repeat("#", level)+" "+printInlines(b.In, doc.Style))
 		case ast.ContentsBlock:
 			parts = append(parts, printMarkdownContentsBlock(b, doc.Style))
@@ -129,16 +126,17 @@ func printHTML(doc ast.Document) string {
 		case ast.Paragraph:
 			lines = append(lines, "  <p>"+escapeHTMLText(printInlines(b.In, doc.Style))+"</p>")
 		case ast.Heading:
-			level := max(b.Level, 1)
-			if level > 6 {
-				level = 6
-			}
+			level := min(max(b.Level, 1), 6)
 			lines = append(lines, fmt.Sprintf("  <h%d>%s</h%d>", level, escapeHTMLText(printInlines(b.In, doc.Style)), level))
 		case ast.ContentsBlock:
 			lines = append(lines, printHTMLContentsBlock(b, doc.Style)...)
 		case ast.MetaLineBlock:
 			value := printInlines(b.In, doc.Style)
-			lines = append(lines, "  <p class=\"meta\"><span class=\"key\">"+escapeHTMLText(b.Key)+":</span> "+escapeHTMLText(value)+"</p>")
+			if value == "" {
+				lines = append(lines, "  <p class=\"meta\"><span class=\"key\">"+escapeHTMLText(b.Key)+":</span></p>")
+			} else {
+				lines = append(lines, "  <p class=\"meta\"><span class=\"key\">"+escapeHTMLText(b.Key)+":</span> "+escapeHTMLText(value)+"</p>")
+			}
 		case ast.DialogueBlock:
 			lines = append(lines, "  <div class=\"dialogue\">")
 			for _, turn := range b.Turns {

@@ -30,6 +30,7 @@ type sourceLine struct {
 
 func Parse(input string, cfg config.Config) ast.Document {
 	input = strings.ReplaceAll(input, "\r\n", "\n")
+	input = strings.ReplaceAll(input, "\r", "\n")
 	rawLines := strings.Split(input, "\n")
 	lines := prepareSourceLines(rawLines)
 	candidates := splitCandidates(lines)
@@ -98,20 +99,17 @@ func parseLeadingTitleCandidates(candidates []candidate) (ast.TitleBlock, []ast.
 }
 
 func parseSingleCandidateTitle(first candidate, tail []candidate) (ast.TitleBlock, []ast.Diag, bool) {
-	if len(first.lines) != 1 {
-		if len(first.lines) != 2 {
-			return ast.TitleBlock{}, nil, false
-		}
-		if !looksLikeTitlePart(first.lines[0]) || !looksLikeTitlePart(first.lines[1]) {
-			return ast.TitleBlock{}, nil, false
-		}
-		if !isFrontMatterPrefix(tail) {
-			return ast.TitleBlock{}, nil, false
-		}
-		in, diags := parseInlineLines(first.lines, first.lineNums, true)
-		return ast.TitleBlock{In: in}, diags, true
+	switch len(first.lines) {
+	case 1:
+		return parseOneLineTitleCandidate(first, tail)
+	case 2:
+		return parseTwoLineTitleCandidate(first, tail)
+	default:
+		return ast.TitleBlock{}, nil, false
 	}
+}
 
+func parseOneLineTitleCandidate(first candidate, tail []candidate) (ast.TitleBlock, []ast.Diag, bool) {
 	if classifyFrontMatterCandidate(first) != frontMatterUnknown {
 		return ast.TitleBlock{}, nil, false
 	}
@@ -123,6 +121,17 @@ func parseSingleCandidateTitle(first candidate, tail []candidate) (ast.TitleBloc
 	}
 
 	in, diags := parseInlineLines(first.lines, first.lineNums, false)
+	return ast.TitleBlock{In: in}, diags, true
+}
+
+func parseTwoLineTitleCandidate(first candidate, tail []candidate) (ast.TitleBlock, []ast.Diag, bool) {
+	if !looksLikeTitlePart(first.lines[0]) || !looksLikeTitlePart(first.lines[1]) {
+		return ast.TitleBlock{}, nil, false
+	}
+	if !isFrontMatterPrefix(tail) {
+		return ast.TitleBlock{}, nil, false
+	}
+	in, diags := parseInlineLines(first.lines, first.lineNums, true)
 	return ast.TitleBlock{In: in}, diags, true
 }
 
@@ -441,7 +450,7 @@ func parseInlineLinesWithCols(lines []string, lineNums []int, cols []int, joinWi
 	for i, line := range lines {
 		toks = append(toks, tokenizeInline(line, lineNums[i], cols[i])...)
 		if joinWithSpace && i+1 < len(lines) {
-			toks = append(toks, token{kind: tokenSpace, text: " ", pos: ast.Pos{Line: lineNums[i], Col: len([]rune(lines[i])) + 1}})
+			toks = append(toks, token{kind: tokenSpace, text: " ", pos: ast.Pos{Line: lineNums[i], Col: utf8.RuneCountInString(lines[i]) + 1}})
 		}
 	}
 	return buildSpans(toks)

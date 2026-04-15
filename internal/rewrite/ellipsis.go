@@ -1,6 +1,10 @@
 package rewrite
 
-import "github.com/n0madic/txtfmt/internal/ast"
+import (
+	"strings"
+
+	"github.com/n0madic/txtfmt/internal/ast"
+)
 
 func normalizeEllipsisDocument(doc *ast.Document) {
 	applyToAllInlines(doc, normalizeEllipsisList)
@@ -10,34 +14,21 @@ func normalizeEllipsisList(in []ast.Inline) []ast.Inline {
 	in = normalizeChildren(in, normalizeEllipsisList)
 
 	out := make([]ast.Inline, 0, len(in))
-	for i := 0; i < len(in); i++ {
-		if isTripleDotPunct(in, i) {
-			out = append(out, ast.Ellipsis{})
-			i += 2
+	for _, item := range in {
+		if w, ok := item.(ast.Word); ok {
+			out = append(out, splitWordEllipsis(w.S)...)
 			continue
 		}
-
-		switch it := in[i].(type) {
-		case ast.Word:
-			out = append(out, splitWordEllipsis(it.S)...)
-		default:
-			out = append(out, in[i])
-		}
+		out = append(out, item)
 	}
 	return out
 }
 
-func isTripleDotPunct(in []ast.Inline, i int) bool {
-	if i+2 >= len(in) {
-		return false
-	}
-	p1, ok1 := in[i].(ast.Punct)
-	p2, ok2 := in[i+1].(ast.Punct)
-	p3, ok3 := in[i+2].(ast.Punct)
-	return ok1 && ok2 && ok3 && p1.Ch == '.' && p2.Ch == '.' && p3.Ch == '.'
-}
-
 func splitWordEllipsis(s string) []ast.Inline {
+	if !strings.ContainsAny(s, ".…") {
+		return []ast.Inline{ast.Word{S: s}}
+	}
+
 	runes := []rune(s)
 	out := make([]ast.Inline, 0, 2)
 	buf := make([]rune, 0, len(runes))
